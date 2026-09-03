@@ -202,6 +202,33 @@ DB 서버를 띄울 필요가 없습니다. SQLAlchemy 실습은 인메모리 SQ
 이 트랙은 "돌려 보며 수치를 관찰하는" 문제가 대부분이라 자동 채점을 붙이지 않았습니다.
 문서는 `docs/38_data_D1.md` 부터, 실행은 `playground/` 에서 하세요.
 
+## 이 저장소를 내 것으로 시작하기
+
+이 저장소는 **GitHub 템플릿**입니다. 오른쪽 위 초록 버튼
+**Use this template → Create a new repository** 를 누르면 내 계정에 깨끗한 복제본이 생깁니다.
+`main`(초기 상태)만 가져오므로 남의 풀이는 따라오지 않습니다.
+
+```bash
+git clone https://github.com/<내아이디>/python-study.git
+cd python-study
+./study setup
+git switch -c my-answers      # 풀이용 브랜치
+./study done b01 push
+```
+
+> 이 저장소에 직접 push 하려 하면 권한이 없어 거부됩니다. 위처럼 **내 저장소를 만들어** 쓰세요.
+> (`Fork` 도 되지만, 포크는 "원본에 기여하겠다"는 뜻이 강하고 포크 목록에 남습니다.
+> 혼자 공부할 거면 템플릿이 깔끔합니다)
+
+**여러 명이 한 저장소를 같이 쓴다면**(collaborator 로 초대받은 경우) 브랜치를 사람별로 나누세요:
+
+```bash
+git switch -c answers/kim      # answers/<내 아이디>
+```
+
+`main` 은 아무도 건드리지 않습니다. `./study done` 이 `main` 에서는 커밋을 거부하니
+실수로 섞이지 않습니다.
+
 ## 브랜치 — 문제와 내 풀이를 나눠 둡니다
 
 | 브랜치 | 내용 |
