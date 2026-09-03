@@ -202,7 +202,7 @@ case "$cmd" in
       exit 0
     fi
     if [ -n "$count" ]; then
-      git commit -q -m "$label ($count개 통과)"
+      git commit -q -m "$label (${count}개 통과)"
     else
       git commit -q -m "$label"
     fi
