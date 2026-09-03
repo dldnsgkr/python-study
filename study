@@ -195,6 +195,8 @@ case "$cmd" in
     fi
     count=$($PY -m pytest --tb=no -rN "$found" 2>/dev/null | grep -oE "[0-9]+ passed" | head -1 | grep -oE "^[0-9]+")
 
+    # git add 는 여기서만 한다. 이 뒤로는 실패할 만한 계산이 없어야
+    # 중간에 죽었을 때 인덱스가 스테이징된 채 남지 않는다.
     git add -A src capstone 2>/dev/null || true
     if git diff --cached --quiet; then
       echo
