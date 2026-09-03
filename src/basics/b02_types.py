@@ -9,7 +9,7 @@ def describe_type(value: object) -> str:
     describe_type(3) == "int" / describe_type("hi") == "str"
     힌트: type(value) 가 돌려주는 것도 하나의 객체이고, 이름을 갖고 있습니다.
     """
-    raise NotImplementedError
+    return type(value).__name__
 
 
 def greet(name: str, age: int) -> str:
@@ -17,7 +17,7 @@ def greet(name: str, age: int) -> str:
 
     greet("김파이", 25) == "김파이님은 25살입니다"
     """
-    raise NotImplementedError
+    return name + "님은 " + str(age) + "살입니다"
 
 
 def divide_report(a: int, b: int) -> tuple[float, int, int]:
@@ -25,12 +25,12 @@ def divide_report(a: int, b: int) -> tuple[float, int, int]:
 
     17 / 5, 17 // 5, 17 % 5 를 먼저 종이에 예상해 보고 실행하세요.
     """
-    raise NotImplementedError
+    return a / b, a // b, a % b
 
 
 def is_even(n: int) -> bool:
     """짝수면 True. `%` 를 써서 한 줄로 쓸 수 있습니다."""
-    raise NotImplementedError
+    return n % 2 == 0
 
 
 def sum_of_inputs(a: str, b: str) -> int:
@@ -39,4 +39,4 @@ def sum_of_inputs(a: str, b: str) -> int:
     input() 은 언제나 문자열을 줍니다. 변환을 빼먹으면 "3" + "5" 가 "35" 가 되죠.
     이 함수는 그 변환 부분만 떼어낸 것입니다.
     """
-    raise NotImplementedError
+    return int(a) + int(b)
