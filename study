@@ -1,0 +1,176 @@
+#!/usr/bin/env bash
+# 파이썬 워크북 학습 도우미.  ./study help 로 사용법을 봅니다.
+set -euo pipefail
+
+cd "$(dirname "$0")"
+PY=".venv/bin/python"
+# 채점 출력은 조용하게: 트레이스백·실패목록 대신 진행률과 "다음 문제" 만 보여준다.
+# 자세히 보려면  ./study next  를 쓰세요.
+QUIET="--tb=no -rN"
+
+# setup 과 help 는 가상환경이 없어도 돌아야 합니다 — setup 이 바로 그걸 만드는 명령이니까요.
+case "${1-}" in
+  setup|help|-h|--help) ;;
+  *)
+    if [ ! -x "$PY" ]; then
+      echo "가상환경이 없습니다. 먼저 한 번만 실행하세요:"
+      echo
+      echo "    ./study setup"
+      exit 1
+    fi
+    ;;
+esac
+
+# uv sync 는 환경을 pyproject 와 '정확히' 맞춥니다. 그래서 그냥 `uv sync` 를 돌리면
+# 앞서 설치한 --group backend 패키지가 제거됩니다. 여기서 알아서 되돌립니다.
+ensure_group() {
+  local group="$1"; shift
+  if $PY -c "import $*" 2>/dev/null; then
+    return 0
+  fi
+  if ! command -v uv >/dev/null 2>&1; then
+    echo "'$group' 트랙 라이브러리가 없습니다. 설치하세요:  uv sync --group $group"
+    exit 1
+  fi
+  echo "'$group' 트랙 라이브러리를 설치합니다..."
+  uv sync --group "$group" || exit 1
+  echo
+}
+
+usage() {
+  cat <<'USAGE'
+사용법:  ./study [명령]
+
+  setup             가상환경·의존성 설치 (처음 한 번)
+  setup backend     백엔드 트랙 라이브러리까지
+  setup data        데이터 트랙 라이브러리까지
+
+  (없음)            전체 채점 — 지금 어디쯤인지 진행률로 보여줍니다
+  basics            기초 트랙만 채점 (B1~B7)
+  kit               코어 트랙만 채점 (01~19)
+  extra             확장 드릴만 채점
+  backend           백엔드 트랙만 채점 (B1~B4)
+  capstone          캡스톤 A(로그 분석 CLI) 채점
+
+  quiz              예측 퀴즈 — 실행 전에 출력을 맞히기
+  quiz <파트>       예) ./study quiz 04   ./study quiz 예외
+  quiz review       전에 틀린 것만 다시
+  next              첫 실패 문제 하나만, 실패 이유를 자세히
+  k <키워드>        이름에 키워드가 든 테스트만 채점   예) ./study k rotate
+  file <이름>       그 파일만 채점   예) ./study file b01   ./study file b14
+                    편집 중인 파일 경로를 그대로 줘도 됩니다
+
+  solution <이름>   모범답안 보기 (다 풀어 본 뒤에!)   예) ./study solution b04_flow
+  doc <이름|번호>   워크북 원문 열기                   예) ./study doc core_04
+  docs              워크북 문서 목록
+
+  lint              ruff 로 스타일 검사
+  types             mypy 로 타입 검사
+  repl              src/ 를 임포트한 상태의 파이썬 REPL
+  verify            모범답안으로 전체 테스트를 돌려 문제 자체를 검증
+  help              이 도움말
+USAGE
+}
+
+cmd="${1-}"
+case "$cmd" in
+  ""|all)      $PY -m pytest $QUIET ;;
+  basics)      $PY -m pytest $QUIET tests/basics ;;
+  kit)         $PY -m pytest $QUIET tests/kit ;;
+  extra)       $PY -m pytest $QUIET tests/extra ;;
+  backend)
+    ensure_group backend fastapi sqlalchemy pydantic_settings aiosqlite
+    $PY -m pytest $QUIET tests/backend
+    ;;
+  setup)
+    shift
+    if ! command -v uv >/dev/null 2>&1; then
+      echo "uv 가 필요합니다:  https://docs.astral.sh/uv/"
+      exit 1
+    fi
+
+    # uv sync 는 환경을 pyproject 와 '정확히' 맞추므로, 그냥 돌리면 이미 설치한
+    # 트랙 라이브러리가 지워집니다. 지금 깔려 있는 것은 그대로 유지합니다.
+    want_backend=0
+    want_data=0
+    if [ -x "$PY" ]; then
+      $PY -c "import fastapi" 2>/dev/null && want_backend=1
+      $PY -c "import pandas"  2>/dev/null && want_data=1
+    fi
+
+    case "${1-}" in
+      backend) want_backend=1 ;;
+      data)    want_data=1 ;;
+      "")      ;;
+      *)       echo "setup 뒤에는 backend 또는 data 만 옵니다"; exit 1 ;;
+    esac
+
+    groups=()
+    [ "$want_backend" -eq 1 ] && groups+=(--group backend)
+    [ "$want_data" -eq 1 ] && groups+=(--group data)
+    uv sync "${groups[@]+"${groups[@]}"}"
+
+    echo
+    echo "준비됐습니다.  ./study  로 시작하세요."
+    ;;
+  capstone)    $PY -m pytest $QUIET capstone ;;
+  quiz)        shift; PYTHONPATH=. $PY -m quiz.run "$@" ;;
+  next)        $PY -m pytest -x --tb=long -q ;;
+  k)           shift; $PY -m pytest --tb=short -rN -k "$*" ;;
+  file)
+    shift
+    if [ $# -eq 0 ]; then
+      echo "예)  ./study file b01"
+      echo "     ./study file src/basics/b01_variables.py"
+      exit 1
+    fi
+    target="$1"
+    if [ -e "$target" ]; then
+      case "$target" in
+        tests/*|capstone/*) found="$target" ;;
+        # src/basics/b01_variables.py 처럼 주면 대응하는 테스트를 찾아 준다
+        *) found=$(find tests capstone -name "test_$(basename "$target" .py).py" | head -1) ;;
+      esac
+    else
+      found=$(find tests capstone -name "test_*${target}*.py" | head -1)
+    fi
+    if [ -z "$found" ]; then
+      echo "'$target' 에 해당하는 테스트를 못 찾았습니다. 목록:"
+      find tests capstone -name "test_*.py" | sort | sed 's|^|  |'
+      exit 1
+    fi
+    echo "채점 대상: $found"
+    $PY -m pytest --tb=short -rN "$found"
+    ;;
+  lint)        $PY -m ruff check . ;;
+  types)       $PY -m mypy ;;
+  verify)
+    ensure_group backend fastapi sqlalchemy pydantic_settings aiosqlite
+    STUDY_SOLUTIONS=1 PYTHONPATH=. $PY -m pytest tests/basics tests/kit tests/extra tests/backend capstone quiz
+    ;;
+  repl)        PYTHONPATH=src $PY -q ;;
+  docs)        ls docs | sed 's/\.md$//' ;;
+  doc)
+    shift
+    [ $# -eq 0 ] && { echo "예) ./study doc core_04"; exit 1; }
+    match=$(ls docs | grep -i -- "$1" | head -1 || true)
+    [ -z "$match" ] && { echo "그런 문서가 없습니다. ./study docs 로 목록을 보세요."; exit 1; }
+    ${PAGER:-less} "docs/$match"
+    ;;
+  solution)
+    shift
+    [ $# -eq 0 ] && { echo "예) ./study solution b04_flow"; exit 1; }
+    match=$(find solutions -name "*$1*.py" | head -1 || true)
+    [ -z "$match" ] && { echo "그런 답안이 없습니다."; exit 1; }
+    echo "── $match ──  (먼저 스스로 풀어 봤나요?)"
+    echo
+    cat "$match"
+    ;;
+  help|-h|--help) usage ;;
+  *)
+    echo "모르는 명령: $cmd"
+    echo
+    usage
+    exit 1
+    ;;
+esac
