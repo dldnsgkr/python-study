@@ -37,6 +37,18 @@ ensure_group() {
   echo
 }
 
+# 이름/경로로 테스트 파일 하나를 찾는다. 못 찾으면 빈 문자열.
+find_test() {
+  local target="$1"
+  if [ -e "$target" ]; then
+    case "$target" in
+      tests/*|capstone/*) echo "$target"; return ;;
+      *) find tests capstone -name "test_$(basename "$target" .py).py" | head -1; return ;;
+    esac
+  fi
+  find tests capstone -name "test_*${target}*.py" | head -1
+}
+
 usage() {
   cat <<'USAGE'
 사용법:  ./study [명령]
@@ -59,6 +71,8 @@ usage() {
   k <키워드>        이름에 키워드가 든 테스트만 채점   예) ./study k rotate
   file <이름>       그 파일만 채점   예) ./study file b01   ./study file b14
                     편집 중인 파일 경로를 그대로 줘도 됩니다
+  done <이름>       채점하고, 전부 통과하면 자동으로 커밋
+  done <이름> push  커밋하고 GitHub 에 푸시까지
 
   solution <이름>   모범답안 보기 (다 풀어 본 뒤에!)   예) ./study solution b04_flow
   doc <이름|번호>   워크북 원문 열기                   예) ./study doc core_04
@@ -124,26 +138,79 @@ case "$cmd" in
       echo "     ./study file src/basics/b01_variables.py"
       exit 1
     fi
-    target="$1"
-    if [ -e "$target" ]; then
-      case "$target" in
-        tests/*|capstone/*) found="$target" ;;
-        # src/basics/b01_variables.py 처럼 주면 대응하는 테스트를 찾아 준다
-        *) found=$(find tests capstone -name "test_$(basename "$target" .py).py" | head -1) ;;
-      esac
-    else
-      found=$(find tests capstone -name "test_*${target}*.py" | head -1)
-    fi
+    found=$(find_test "$1")
     if [ -z "$found" ]; then
-      echo "'$target' 에 해당하는 테스트를 못 찾았습니다. 목록:"
+      echo "'$1' 에 해당하는 테스트를 못 찾았습니다. 목록:"
       find tests capstone -name "test_*.py" | sort | sed 's|^|  |'
       exit 1
     fi
     echo "채점 대상: $found"
     $PY -m pytest --tb=short -rN "$found"
     ;;
-  lint)        $PY -m ruff check . ;;
-  types)       $PY -m mypy ;;
+  done)
+    shift
+    if [ $# -eq 0 ]; then
+      echo "예)  ./study done b02          채점하고 통과하면 커밋"
+      echo "     ./study done b02 push     푸시까지"
+      exit 1
+    fi
+    if ! git rev-parse --git-dir >/dev/null 2>&1; then
+      echo "git 저장소가 아닙니다."
+      exit 1
+    fi
+    branch=$(git rev-parse --abbrev-ref HEAD)
+    if [ "$branch" = "main" ]; then
+      echo "main 은 초기 상태로 남겨 둡니다. 풀이는 다른 브랜치에서:"
+      echo
+      echo "    git switch my-answers"
+      exit 1
+    fi
+
+    found=$(find_test "$1")
+    if [ -z "$found" ]; then
+      echo "'$1' 에 해당하는 테스트를 못 찾았습니다."
+      exit 1
+    fi
+
+    echo "채점 대상: $found"
+    if ! $PY -m pytest --tb=short -rN "$found"; then
+      echo
+      echo "아직 통과하지 않은 문제가 있습니다. 커밋하지 않았습니다."
+      exit 1
+    fi
+
+    # 커밋 메시지: 모듈 docstring 첫 줄을 파트 이름으로 쓴다
+    src_file=$(echo "$found" | sed "s|^tests/|src/|; s|/test_|/|")
+    if [ -f "$src_file" ]; then
+      label=$(head -1 "$src_file" | sed 's/^"""//; s|[[:space:]]*(docs/.*||')
+    else
+      label=""
+    fi
+    if [ -z "$label" ]; then
+      label=$(basename "$found" .py | sed 's/^test_//')
+    fi
+    count=$($PY -m pytest --tb=no -rN "$found" 2>/dev/null | grep -oE "[0-9]+ passed" | head -1 | grep -oE "^[0-9]+")
+
+    git add -A src capstone 2>/dev/null || true
+    if git diff --cached --quiet; then
+      echo
+      echo "전부 통과했지만 커밋할 변경이 없습니다 (이미 커밋된 상태입니다)."
+      exit 0
+    fi
+    if [ -n "$count" ]; then
+      git commit -q -m "$label ($count개 통과)"
+    else
+      git commit -q -m "$label"
+    fi
+    echo
+    echo "커밋했습니다:  $(git log -1 --format='%h %s')"
+
+    if [ "${2-}" = "push" ]; then
+      git push -q && echo "푸시 완료:  origin/$branch"
+    else
+      echo "푸시하려면:  git push        (또는 ./study done $1 push)"
+    fi
+    ;;
   verify)
     ensure_group backend fastapi sqlalchemy pydantic_settings aiosqlite
     STUDY_SOLUTIONS=1 PYTHONPATH=. $PY -m pytest tests/basics tests/kit tests/extra tests/backend capstone quiz
