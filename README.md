@@ -206,7 +206,10 @@ DB 서버를 띄울 필요가 없습니다. SQLAlchemy 실습은 인메모리 SQ
 
 이 저장소는 **GitHub 템플릿**입니다. 오른쪽 위 초록 버튼
 **Use this template → Create a new repository** 를 누르면 내 계정에 깨끗한 복제본이 생깁니다.
-`main`(초기 상태)만 가져오므로 남의 풀이는 따라오지 않습니다.
+
+> ⚠️ 그 화면의 **`Include all branches` 는 체크하지 마세요.**
+> 끄면 `main`(초기 상태)만 복사됩니다. 켜면 남의 풀이 브랜치까지 따라와서,
+> 처음부터 풀어 보려는 목적이 흐려집니다.
 
 ```bash
 git clone https://github.com/<내아이디>/python-study.git
