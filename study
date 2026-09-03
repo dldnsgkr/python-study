@@ -160,9 +160,13 @@ case "$cmd" in
     fi
     branch=$(git rev-parse --abbrev-ref HEAD)
     if [ "$branch" = "main" ]; then
-      echo "main 은 초기 상태로 남겨 둡니다. 풀이는 다른 브랜치에서:"
+      echo "main 은 초기 상태로 남겨 둡니다. 풀이는 별도 브랜치에서 하세요."
       echo
-      echo "    git switch my-answers"
+      if git show-ref --verify --quiet refs/heads/my-answers; then
+        echo "    git switch my-answers"
+      else
+        echo "    git switch -c my-answers      # 내 풀이 브랜치를 새로 만듭니다"
+      fi
       exit 1
     fi
 
