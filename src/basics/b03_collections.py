@@ -10,7 +10,8 @@ def add_food(foods: list[str], new_food: str) -> tuple[str, str]:
        리스트에 append 하면 원본이 바뀝니다 — 새 리스트를 만들어 쓰세요.
        (B7에서 다룰 '같은 객체를 두 이름이 가리킨다' 문제의 예고편입니다)
     """
-    raise NotImplementedError
+    new_list = foods + [new_food]
+    return new_list[0], new_list[-1]
 
 
 def profile_lines(profile: dict[str, object]) -> list[str]:
@@ -19,7 +20,10 @@ def profile_lines(profile: dict[str, object]) -> list[str]:
     {"이름": "김파이", "나이": 25} -> ["이름: 김파이", "나이: 25"]
     순서는 딕셔너리에 넣은 순서 그대로여야 합니다.
     """
-    raise NotImplementedError
+    list_of_strings = []
+    for key, value in profile.items():
+        list_of_strings.append(key + ": " + str(value))
+    return list_of_strings
 
 
 def unique_sorted(numbers: list[int]) -> list[int]:
@@ -28,14 +32,14 @@ def unique_sorted(numbers: list[int]) -> list[int]:
     세트(set)를 거치면 중복이 사라집니다. 다만 세트는 순서가 없으니
     다시 리스트로 만들고 정렬해야 합니다.
     """
-    raise NotImplementedError
+    return sorted(set(numbers))
 
 
 def add_hobby(profile: dict[str, object], hobby: str) -> dict[str, object]:
     """취미를 추가한 '새' 딕셔너리를 돌려준다. 원본은 건드리지 않는다."""
-    raise NotImplementedError
+    return {**profile, "취미": hobby}
 
 
 def has_key(profile: dict[str, object], key: str) -> bool:
     """키가 있는지 `in` 으로 확인한다."""
-    raise NotImplementedError
+    return key in profile
