@@ -16,7 +16,7 @@ def introduce(name: str, age: int, height: float) -> str:
 
     introduce("김파이", 25, 172.5) == "김파이님은 25살, 키는 172.5cm입니다"
     """
-    raise NotImplementedError
+    return f"{name}님은 {age}살, 키는 {height}cm입니다"
 
 
 def add_to_price(price: int, extra: int) -> int:
@@ -25,7 +25,7 @@ def add_to_price(price: int, extra: int) -> int:
     `price = price + extra` 가 왜 말이 되는지 생각해 보세요.
     오른쪽을 먼저 계산한 뒤 그 결과를 이름에 다시 묶습니다.
     """
-    raise NotImplementedError
+    return price + extra
 
 
 def swap(a: object, b: object) -> tuple[object, object]:
@@ -33,7 +33,7 @@ def swap(a: object, b: object) -> tuple[object, object]:
 
     임시 변수를 쓰는 방법과 `a, b = b, a` 두 가지를 모두 시도해 보세요.
     """
-    raise NotImplementedError
+    return b, a
 
 
 def total_seconds(days: int) -> int:
@@ -42,4 +42,6 @@ def total_seconds(days: int) -> int:
     86400 을 그냥 쓰지 말고 `seconds_per_day` 같은 이름을 먼저 만들어 보세요.
     좋은 이름이 좋은 코드입니다.
     """
-    raise NotImplementedError
+    seconds_per_day = 24 * 60 * 60
+    
+    return days * seconds_per_day
